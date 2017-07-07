@@ -24,8 +24,8 @@ void PID::Init(double Kp, double Ki, double Kd) {
   
     iter = 1;
     index = 0; // 1-Kp, 2=Ki, 3=Kd
-    steps = 1;
-    eval_steps =1; // steps+eval_steps=2*N from the lesson
+    steps = 50;
+    eval_steps =100; // steps+eval_steps=2*N from the lesson
     dp = {1.0,1.0,1.0};
     tol = 0.01;
     err = 0;
@@ -33,7 +33,7 @@ void PID::Init(double Kp, double Ki, double Kd) {
     wait_flag = false;
 }
 
-void PID::UpdateError(double cte) {
+void PID::UpdateError(double cte, double dt) {
 
 	if ( iter == 1) {
 		prev_cte = cte;
@@ -42,7 +42,9 @@ void PID::UpdateError(double cte) {
 	double diff_cte = cte - prev_cte;
 	p_error = cte;
 	i_error += cte;
+	//i_error += cte * dt;
 	d_error = diff_cte;
+	//d_error = diff_cte / dt;
 
 	prev_cte = cte;
 
@@ -53,9 +55,9 @@ void PID::UpdateError(double cte) {
 		err += cte * cte;
 	}
 
-	if ( (eval_a == 0) & ( iter > steps)) { // reset the error
-		err = 0.0;
-	}
+//	if ( (eval_a == 0) & ( iter > steps)) { // reset the error
+//		err = 0.0;
+//	}
 
 /*	Twiddle attempt
 	if ( eval_b == 0) {
@@ -129,14 +131,18 @@ void PID::UpdateError(double cte) {
 		}
 	}
 */
-	cout <<  "iter: " << std::to_string(iter) << " Kp: " << Kp << " | Kd: " << Kd << " | Ki: " << Ki  << endl;
 
+	//cout <<  "iter: " << std::to_string(iter) << " Kp: " << Kp << " | Kd: " << Kd << " | Ki: " << Ki  << endl;
+	cout <<  ">>iter: " << std::to_string(iter) << " p_err: " << p_error << " | i_err: " << i_error << " | d_err : " << d_error  << endl;
+	if ( iter == (steps + eval_steps)) {
+		cout << "best err : " << err << endl;
+	}
 	iter++;
 }
 
 double PID::TotalError() {
 	double totalErr = -Kp * p_error  -Kd * d_error -Ki * i_error;
-	cout << "TotalError : " << totalErr << endl;
+	//cout << "TotalError : " << totalErr << endl;
 	return totalErr;
 }
 

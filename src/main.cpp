@@ -12,6 +12,11 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+double slow_down;
+bool init;
+double prev_time;
+double dt;
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -36,7 +41,17 @@ int main()
   // TODO: Initialize the pid variable.
   // for testing with twiddle
   //pid.Init(0.0,0.0,0.0);
-  pid.Init(0.07, 0.0002,  0.9);
+  // good result but going off curve track
+  //pid.Init(0.080, 0.001,  0.4);
+
+  pid.Init(0.042, 0.005,  3.0);
+
+  //Can stay within the track including curves but oscillate a lot
+  //pid.Init(0.543,0.0017, 5.581 );  
+
+  init  = false;
+  prev_time = 0.0;
+  dt = 0;
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -60,23 +75,44 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          pid.UpdateError(cte);
+
+          double current_time = clock();
+
+          if ( ! init ) {
+            //std::string msg = "42[\"reset\",{}]";
+            //ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+            dt = 1;
+            init = true;
+          }
+          else {
+            dt = (current_time - prev_time)/CLOCKS_PER_SEC;
+          }
+          prev_time = current_time;
+
+          pid.UpdateError(cte, dt);
           steer_value = pid.TotalError();
           
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
-         /* if (steer_value > 1) {
+          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << "  dt:" << dt << std::endl;
+         /*if (steer_value > 1) {
             steer_value = 1;
+            std::cout << "corrected steer_value 1" << steer_value << std::endl;
           }
           else if (steer_value < -1) {
             steer_value = -1;
-          } */
+            std::cout << "corrected steer_value -1" << steer_value << std::endl;
+          }*/ 
+
+          //if ( fabs(cte) > 1 )
+          //  slow_down = 0.1;
+          //else
+            slow_down = 0.0;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
+          msgJson["throttle"] = 0.4 - slow_down;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
