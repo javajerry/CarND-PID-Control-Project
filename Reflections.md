@@ -11,9 +11,7 @@ It played significant role in "resetting the car back to center" especially whil
 
 <H2>Describe how the final hyperparameters were chosen</H2>
  Kp = 0.085
- 
  Ki = 0.001
- 
  Kd = 0.48
 
 
